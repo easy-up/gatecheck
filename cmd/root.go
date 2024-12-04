@@ -94,6 +94,11 @@ func NewGatecheckCommand() *cobra.Command {
 		newBundleCommand(),
 		newValidateCommand(),
 		newDownloadCommand(),
+		newSubmitCommand(),
 	)
 	return gatecheckCmd
+}
+
+func Execute() error {
+	return NewGatecheckCommand().Execute()
 }

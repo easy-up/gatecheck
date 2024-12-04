@@ -42,7 +42,7 @@ var bundleCreateCmd = &cobra.Command{
 		label := path.Base(targetFilename)
 		bf, tf := RuntimeConfig.bundleFile, RuntimeConfig.targetFile
 		tags := RuntimeConfig.BundleTagValue
-		return gatecheck.CreateBundle(bf, tf, label, tags)
+		return gatecheck.CreateBundle(bf, tf, label, tags, &gatecheck.Config{})
 	},
 }
 

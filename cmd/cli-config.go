@@ -8,6 +8,7 @@ import (
 	"github.com/gatecheckdev/configkit"
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
 	"github.com/spf13/cobra"
+	"golang.org/x/exp/slog"
 )
 
 var (
@@ -166,6 +167,17 @@ var RuntimeConfig = metaConfig{
 			valueP := f.FlagValueP.(*string)
 			usage := f.Metadata[metadataFlagUsage]
 			cmd.PersistentFlags().StringVarP(valueP, "config", "f", "", usage)
+
+			// Add PreRun hook to log config file path
+			if cmd.PreRun == nil {
+				cmd.PreRun = func(cmd *cobra.Command, args []string) {
+					if *valueP != "" {
+						slog.Info("GATECHECK: using config file", "path", *valueP)
+					} else {
+						slog.Info("GATECHECK: no config file specified, using defaults")
+					}
+				}
+			}
 		},
 		Metadata: map[string]string{
 			metadataFlagUsage:       "a validation configuration file",

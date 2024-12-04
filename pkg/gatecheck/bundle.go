@@ -11,7 +11,7 @@ import (
 //
 // If the bundle already exist, use CreateBundle.
 // this function will completely overwrite an existing bundle
-func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []string) error {
+func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []string, config *Config) error {
 	slog.Debug("add to source file content to bundle", "label", label, "tags", tags)
 	srcContent, err := io.ReadAll(src)
 	if err != nil {
@@ -28,7 +28,6 @@ func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []strin
 	}
 
 	slog.Info("bundle write success", "bytes_written", n, "label", label, "tags", tags)
-
 	return nil
 }
 

@@ -18,10 +18,13 @@ var validateCmd = &cobra.Command{
 
 		RuntimeConfig.gatecheckConfig = gatecheck.NewDefaultConfig()
 		if configFilename != "" {
+			slog.Info("GATECHECK: using config file", "path", configFilename)
 			err := gatecheck.NewConfigDecoder(configFilename).Decode(RuntimeConfig.gatecheckConfig)
 			if err != nil {
 				return err
 			}
+		} else {
+			slog.Info("GATECHECK: no config file specified, using defaults")
 		}
 
 		var err error

@@ -29,6 +29,7 @@ type Config struct {
 	Semgrep   configSemgrepReport  `json:"semgrep"   toml:"semgrep"   yaml:"semgrep"`
 	Gitleaks  configGitleaksReport `json:"gitleaks"  toml:"gitleaks"  yaml:"gitleaks"`
 	Coverage  configCoverageReport `json:"coverage"  toml:"coverage"  yaml:"coverage"`
+	API       APIConfig            `json:"api"       toml:"api"       yaml:"api"`
 }
 
 func (c *Config) String() string {
@@ -125,6 +126,13 @@ type configCVE struct {
 type configLimit struct {
 	Enabled bool `json:"enabled" toml:"enabled" yaml:"enabled"`
 	Limit   uint `json:"limit"   toml:"limit"   yaml:"limit"`
+}
+
+type APIConfig struct {
+	Enabled    bool   `json:"enabled" yaml:"enabled"`
+	Endpoint   string `json:"endpoint" yaml:"endpoint"`
+	JWTToken   string `json:"jwtToken" yaml:"jwtToken"`
+	SkipVerify bool   `json:"skipVerify" yaml:"skipVerify"`
 }
 
 func NewDefaultConfig() *Config {
@@ -236,6 +244,9 @@ func NewDefaultConfig() *Config {
 			LineThreshold:     0,
 			FunctionThreshold: 0,
 			BranchThreshold:   0,
+		},
+		API: APIConfig{
+			Enabled: false,
 		},
 	}
 }
