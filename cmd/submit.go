@@ -18,7 +18,6 @@ import (
 type Config struct {
 	API struct {
 		Endpoint   string
-		JWTToken   string
 		SkipVerify bool
 	}
 }
@@ -48,8 +47,10 @@ var submitCmd = &cobra.Command{
 		if RuntimeConfig.gatecheckConfig.API.Endpoint == "" {
 			return fmt.Errorf("API endpoint is not configured")
 		}
-		if RuntimeConfig.gatecheckConfig.API.JWTToken == "" {
-			return fmt.Errorf("API JWT token is not configured")
+
+		// Check for JWT token in environment
+		if os.Getenv("BELAY_JWT_TOKEN") == "" {
+			return fmt.Errorf("BELAY_JWT_TOKEN environment variable is not set")
 		}
 
 		// Open the target file
@@ -83,6 +84,9 @@ func newSubmitCommand() *cobra.Command {
 }
 
 func UploadBundle(filename string, config *gatecheck.Config) error {
+	// Get JWT token from environment
+	jwtToken := os.Getenv("BELAY_JWT_TOKEN")
+
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -96,10 +100,10 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	writer := multipart.NewWriter(body)
 
 	// Add the JWT token field with exact case matching
-	if err := writer.WriteField("JwtToken", config.API.JWTToken); err != nil {
+	if err := writer.WriteField("JwtToken", jwtToken); err != nil {
 		return fmt.Errorf("failed to write JWT token: %w", err)
 	}
-	slog.Debug("wrote JWT token", "length", len(config.API.JWTToken))
+	slog.Debug("wrote JWT token", "length", len(jwtToken))
 
 	// Create the file field with exact case matching
 	part, err := writer.CreateFormFile("TarGzFile", filepath.Base(filename))
@@ -111,7 +115,6 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	// Add debug logging to verify the form fields
 	slog.Debug("sending multipart request",
 		"endpoint", config.API.Endpoint,
-		"jwt_token_length", len(config.API.JWTToken),
 		"filename", filepath.Base(filename),
 		"content_type", writer.FormDataContentType())
 
