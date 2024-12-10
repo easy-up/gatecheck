@@ -108,6 +108,13 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 		return fmt.Errorf("failed to get git status: %w", err)
 	}
 
+	// Get git branch name
+	gitCmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchName, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get branch name: %w", err)
+	}
+
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -141,6 +148,12 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 		return fmt.Errorf("failed to write git status: %w", err)
 	}
 	slog.Debug("wrote git status")
+
+	// Add the branch name field
+	if err := writer.WriteField("BranchName", strings.TrimSpace(string(branchName))); err != nil {
+		return fmt.Errorf("failed to write branch name: %w", err)
+	}
+	slog.Debug("wrote branch name")
 
 	// Create the file field
 	part, err := writer.CreateFormFile("TarGzFile", filepath.Base(filename))
