@@ -9,7 +9,9 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
 	"github.com/spf13/cobra"
@@ -87,6 +89,25 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	// Get JWT token from environment
 	jwtToken := os.Getenv("BELAY_JWT_TOKEN")
 
+	// Get git information
+	gitCmd := exec.Command("git", "rev-parse", "HEAD")
+	commitHash, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get commit hash: %w", err)
+	}
+
+	gitCmd = exec.Command("git", "show", "-s", "--format=%cI", "HEAD")
+	commitDate, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get commit date: %w", err)
+	}
+
+	gitCmd = exec.Command("git", "status", "--porcelain")
+	gitStatus, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get git status: %w", err)
+	}
+
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
@@ -99,30 +120,41 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	// Add the JWT token field with exact case matching
+	// Add the JWT token field
 	if err := writer.WriteField("JwtToken", jwtToken); err != nil {
 		return fmt.Errorf("failed to write JWT token: %w", err)
 	}
 	slog.Debug("wrote JWT token", "length", len(jwtToken))
 
-	// Create the file field with exact case matching
+	// Add git information fields
+	if err := writer.WriteField("CommitHash", strings.TrimSpace(string(commitHash))); err != nil {
+		return fmt.Errorf("failed to write commit hash: %w", err)
+	}
+	slog.Debug("wrote commit hash")
+
+	if err := writer.WriteField("CommitDate", strings.TrimSpace(string(commitDate))); err != nil {
+		return fmt.Errorf("failed to write commit date: %w", err)
+	}
+	slog.Debug("wrote commit date")
+
+	if err := writer.WriteField("GitStatus", string(gitStatus)); err != nil {
+		return fmt.Errorf("failed to write git status: %w", err)
+	}
+	slog.Debug("wrote git status")
+
+	// Create the file field
 	part, err := writer.CreateFormFile("TarGzFile", filepath.Base(filename))
 	if err != nil {
 		return fmt.Errorf("failed to create form file: %w", err)
 	}
-	slog.Debug("wrote file", "filename", filepath.Base(filename))
-
-	// Add debug logging to verify the form fields
-	slog.Debug("sending multipart request",
-		"endpoint", config.API.Endpoint,
-		"filename", filepath.Base(filename),
-		"content_type", writer.FormDataContentType())
+	slog.Debug("created form file", "filename", filepath.Base(filename))
 
 	// Copy the file content
 	if _, err := io.Copy(part, file); err != nil {
 		return fmt.Errorf("failed to copy file content: %w", err)
 	}
-	slog.Debug("copied file content", "filename", filepath.Base(filename))
+	slog.Debug("copied file content")
+
 	// Close the multipart writer
 	if err := writer.Close(); err != nil {
 		return fmt.Errorf("failed to close writer: %w", err)
@@ -138,6 +170,7 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	// Set the content type
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	slog.Debug("set content type", "content_type", writer.FormDataContentType())
+
 	// Create HTTP client
 	client := &http.Client{
 		Transport: &http.Transport{
