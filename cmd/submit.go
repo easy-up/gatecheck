@@ -107,6 +107,9 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to get git status: %w", err)
 	}
+	if len(gitStatus) == 0 {
+		gitStatus = []byte("clean")
+	}
 
 	// Get git branch name
 	gitCmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
