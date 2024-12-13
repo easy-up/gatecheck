@@ -3,3 +3,4 @@ dist/
 book/
 cover.cov
 .env.local
+artifacts/
