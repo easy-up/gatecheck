@@ -102,13 +102,18 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 		return fmt.Errorf("failed to get commit date: %w", err)
 	}
 
+	// Get git log (last commit message)
+	gitCmd = exec.Command("git", "log", "-1", "--pretty=format:%s")
+	gitLog, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get git log: %w", err)
+	}
+
+	// Get git status
 	gitCmd = exec.Command("git", "status", "--porcelain")
 	gitStatus, err := gitCmd.Output()
 	if err != nil {
 		return fmt.Errorf("failed to get git status: %w", err)
-	}
-	if len(gitStatus) == 0 {
-		gitStatus = []byte("clean")
 	}
 
 	// Get git branch name
@@ -118,58 +123,77 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 		return fmt.Errorf("failed to get branch name: %w", err)
 	}
 
+	// Get repository information
+	gitCmd = exec.Command("git", "config", "--get", "remote.origin.url")
+	repoURL, err := gitCmd.Output()
+	if err != nil {
+		return fmt.Errorf("failed to get repository URL: %w", err)
+	}
+
+	// Extract owner and repository names from URL
+	repoURLStr := strings.TrimSpace(string(repoURL))
+	// Handle both HTTPS and SSH URLs
+	var ownerName, repoName string
+	if strings.HasPrefix(repoURLStr, "https://") {
+		// https://github.com/owner/repo.git
+		parts := strings.Split(strings.TrimSuffix(repoURLStr, ".git"), "/")
+		if len(parts) >= 2 {
+			ownerName = parts[len(parts)-2]
+			repoName = parts[len(parts)-1]
+		}
+	} else {
+		// git@github.com:owner/repo.git
+		parts := strings.Split(strings.Split(repoURLStr, ":")[1], "/")
+		if len(parts) >= 2 {
+			ownerName = parts[0]
+			repoName = strings.TrimSuffix(parts[1], ".git")
+		}
+	}
+
+	if ownerName == "" || repoName == "" {
+		return fmt.Errorf("failed to extract owner and repository names from URL: %s", repoURLStr)
+	}
+
 	// Open the file
 	file, err := os.Open(filename)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
-	slog.Debug("opened file", "filename", filepath.Base(filename))
 
 	// Create a new multipart writer
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	// Add the JWT token field
-	if err := writer.WriteField("JwtToken", jwtToken); err != nil {
-		return fmt.Errorf("failed to write JWT token: %w", err)
+	// Add all required fields
+	fields := map[string]string{
+		"JwtToken":       jwtToken,
+		"OwnerName":      ownerName,
+		"RepositoryName": repoName,
+		"CommitHash":     strings.TrimSpace(string(commitHash)),
+		"CommitDate":     strings.TrimSpace(string(commitDate)),
+		"GitLog":         strings.TrimSpace(string(gitLog)),
+		"GitStatus":      string(gitStatus),
+		"BranchName":     strings.TrimSpace(string(branchName)),
 	}
-	slog.Debug("wrote JWT token", "length", len(jwtToken))
 
-	// Add git information fields
-	if err := writer.WriteField("CommitHash", strings.TrimSpace(string(commitHash))); err != nil {
-		return fmt.Errorf("failed to write commit hash: %w", err)
+	for key, value := range fields {
+		if err := writer.WriteField(key, value); err != nil {
+			return fmt.Errorf("failed to write field %s: %w", key, err)
+		}
+		slog.Debug("wrote field", "key", key)
 	}
-	slog.Debug("wrote commit hash")
-
-	if err := writer.WriteField("CommitDate", strings.TrimSpace(string(commitDate))); err != nil {
-		return fmt.Errorf("failed to write commit date: %w", err)
-	}
-	slog.Debug("wrote commit date")
-
-	if err := writer.WriteField("GitStatus", string(gitStatus)); err != nil {
-		return fmt.Errorf("failed to write git status: %w", err)
-	}
-	slog.Debug("wrote git status")
-
-	// Add the branch name field
-	if err := writer.WriteField("BranchName", strings.TrimSpace(string(branchName))); err != nil {
-		return fmt.Errorf("failed to write branch name: %w", err)
-	}
-	slog.Debug("wrote branch name")
 
 	// Create the file field
 	part, err := writer.CreateFormFile("TarGzFile", filepath.Base(filename))
 	if err != nil {
 		return fmt.Errorf("failed to create form file: %w", err)
 	}
-	slog.Debug("created form file", "filename", filepath.Base(filename))
 
 	// Copy the file content
 	if _, err := io.Copy(part, file); err != nil {
 		return fmt.Errorf("failed to copy file content: %w", err)
 	}
-	slog.Debug("copied file content")
 
 	// Close the multipart writer
 	if err := writer.Close(); err != nil {
@@ -181,11 +205,9 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	slog.Debug("created request", "endpoint", config.API.Endpoint)
 
 	// Set the content type
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	slog.Debug("set content type", "content_type", writer.FormDataContentType())
 
 	// Create HTTP client
 	client := &http.Client{
@@ -201,7 +223,6 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
-	slog.Debug("received response", "status", resp.Status)
 	defer resp.Body.Close()
 
 	// Check response status
@@ -209,7 +230,6 @@ func UploadBundle(filename string, config *gatecheck.Config) error {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
 	}
-	slog.Debug("upload successful", "status", resp.Status)
 
 	return nil
 }
