@@ -4,3 +4,5 @@ book/
 cover.cov
 .env.local
 artifacts/
+.portage.yml
+.custom-gatecheck.yml
