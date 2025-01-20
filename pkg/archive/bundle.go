@@ -14,6 +14,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 	"time"
@@ -39,7 +40,38 @@ type Manifest struct {
 	Created time.Time                 `json:"createdAt"`
 	Version string                    `json:"version"`
 	Files   map[string]fileDescriptor `json:"files"`
+	Context *GitContext               `json:"context,omitempty"`
 }
+
+type GitContext struct {
+	CommitHash    string          `json:"commitHash"`
+	CommitDate    time.Time       `json:"commitDate"`
+	CommitMessage string          `json:"commitMessage"`
+	Status        []GitFileStatus `json:"status"`
+	Branch        string          `json:"branch"`
+}
+
+type GitFileStatus struct {
+	Path           string     `json:"path"`
+	OriginalPath   string     `json:"originalPath"`
+	IndexStatus    StatusFlag `json:"indexStatus"`
+	WorkTreeStatus StatusFlag `json:"workTreeStatus"`
+	FileSha256     string     `json:"fileSha256"`
+}
+
+type StatusFlag string
+
+const (
+	Unchanged   StatusFlag = " "
+	TypeChanged StatusFlag = "T"
+	Modified    StatusFlag = "M"
+	Added       StatusFlag = "A"
+	Deleted     StatusFlag = "D"
+	Renamed     StatusFlag = "R"
+	Copied      StatusFlag = "C"
+	Unmerged    StatusFlag = "U"
+	Untracked   StatusFlag = "?"
+)
 
 type fileDescriptor struct {
 	Added time.Time `json:"addedAt"`
@@ -61,8 +93,189 @@ type Bundle struct {
 func NewBundle() *Bundle {
 	return &Bundle{
 		content:  make(map[string][]byte),
-		manifest: Manifest{Created: time.Now(), Version: BundleVersion, Files: make(map[string]fileDescriptor)},
+		manifest: Manifest{Created: time.Now(), Version: BundleVersion, Files: make(map[string]fileDescriptor), Context: nil},
 	}
+}
+
+func GetContext() (*GitContext, error) {
+	// Get git information
+	gitCmd := exec.Command("git", "rev-parse", "HEAD")
+	commitHash, err := gitCmd.Output()
+	if err != nil {
+		// If rev-parse fails either the git executable is missing or corrupt, or we are not in a git repo
+		// If we're not in a git repo then Context should just be nil
+		return nil, nil
+	}
+
+	gitCmd = exec.Command("git", "show", "-s", "--format=%cI%n%B", "HEAD")
+	commitDateAndMessageBytes, err := gitCmd.Output()
+	commitDateAndMessage := strings.SplitN(string(commitDateAndMessageBytes), "\n", 2)
+	commitDate := commitDateAndMessage[0]
+	commitMessage := ""
+	if len(commitDateAndMessage) > 1 {
+		commitMessage = commitDateAndMessage[1]
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get commit date: %w", err)
+	}
+
+	// Get git branch name
+	gitCmd = exec.Command("git", "rev-parse", "--abbrev-ref", "HEAD")
+	branchName, err := gitCmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get branch name: %w", err)
+	}
+
+	// Get git status
+	gitCmd = exec.Command("git", "status", "--porcelain")
+	gitStatus, err := gitCmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get git status: %w", err)
+	}
+
+	statusLines := strings.Split(string(gitStatus), "\n")
+
+	var gitFileStatuses []GitFileStatus
+	for _, line := range statusLines {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		status, err := parseGitStatusLine(line)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse git status line: %w", err)
+		}
+		gitFileStatuses = append(gitFileStatuses, status)
+	}
+
+	commitDateParsed, err := time.Parse(time.RFC3339, strings.TrimSpace(commitDate))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse commit date: %w", err)
+	}
+
+	return &GitContext{
+		CommitHash:    strings.TrimSpace(string(commitHash)),
+		CommitDate:    commitDateParsed,
+		CommitMessage: strings.TrimSpace(commitMessage),
+		Status:        gitFileStatuses,
+		Branch:        strings.TrimSpace(string(branchName)),
+	}, nil
+}
+
+func parseGitStatusLine(line string) (GitFileStatus, error) {
+	if len(line) < 3 {
+		return GitFileStatus{}, fmt.Errorf("invalid git status line: %s", line)
+	}
+
+	// Extract the index and work tree status flags
+	indexStatus := StatusFlag(line[0])
+	workTreeStatus := StatusFlag(line[1])
+
+	// Extract path and original path (for renames or copied files)
+	line = strings.TrimSpace(line[3:])
+
+	path, part2, err := splitGitStatusPaths(line)
+	if err != nil {
+		return GitFileStatus{}, fmt.Errorf("failed to parse git status path: %w", err)
+	}
+
+	originalPath := ""
+	if part2 != "" {
+		originalPath = path
+		path = strings.TrimSpace(part2)
+	}
+
+	fileSha256 := ""
+	computeHash := false
+	if workTreeStatus == Deleted {
+		computeHash = indexStatus != Unmerged
+	} else if workTreeStatus == TypeChanged {
+		computeHash = indexStatus != TypeChanged && indexStatus != Unchanged
+	} else {
+		// When indexStatus is Deleted, the workTreeStatus should only ever be unchanged.
+		computeHash = indexStatus != Deleted && (workTreeStatus != Unchanged || indexStatus != TypeChanged)
+	}
+
+	if computeHash {
+		file, err := os.Open(path)
+		if err == nil {
+			defer file.Close()
+
+			hasher := sha256.New()
+			if _, err := io.Copy(hasher, file); err != nil {
+				return GitFileStatus{}, fmt.Errorf("failed to compute SHA256 hash for file '%s': %w", path, err)
+			}
+			fileSha256 = hex.EncodeToString(hasher.Sum([]byte{}))
+			slog.Debug("file SHA256 hash computed", "path", path, "hash", fileSha256)
+		} else {
+			slog.Warn("Unable to open file to compute SHA256 hash", "path", path, "error", err)
+		}
+	}
+
+	return GitFileStatus{
+		Path:           path,
+		OriginalPath:   originalPath,
+		IndexStatus:    indexStatus,
+		WorkTreeStatus: workTreeStatus,
+		FileSha256:     fileSha256,
+	}, nil
+}
+
+func splitGitStatusPaths(line string) (string, string, error) {
+	var result []string
+	var currentSegment []rune
+	inQuotes := false
+	escaped := false
+
+	for i, char := range line {
+		if escaped {
+			// Handle escaped characters
+			currentSegment = append(currentSegment, char)
+			escaped = false
+			continue
+		}
+
+		if char == '\\' {
+			// Process escape sequences
+			escaped = true
+			continue
+		}
+
+		if char == '"' {
+			// Toggle the in-quotes state
+			inQuotes = !inQuotes
+			continue
+		}
+
+		if !inQuotes && i+2 <= len(line) && line[i:i+2] == "->" {
+			// Split when encountering an unquoted '->'
+			result = append(result, string(currentSegment))
+			currentSegment = []rune{}
+			i++ // Skip the '>'
+			continue
+		}
+
+		// Append regular characters
+		currentSegment = append(currentSegment, char)
+	}
+
+	// Append the last segment
+	if len(currentSegment) > 0 {
+		result = append(result, string(currentSegment))
+	}
+
+	if len(result) > 2 || inQuotes || escaped {
+		return "", "", fmt.Errorf("failed to parse the git status path")
+	}
+
+	if len(result) == 2 {
+		return strings.TrimSpace(result[0]), strings.TrimSpace(result[1]), nil
+	} else {
+		return strings.TrimSpace(result[0]), "", nil
+	}
+}
+
+func (b *Bundle) SetContext(context *GitContext) {
+	b.manifest.Context = context
 }
 
 // Manifest generated by the bundle
@@ -70,7 +283,7 @@ func (b *Bundle) Manifest() Manifest {
 	return b.manifest
 }
 
-// WriteFileTo Used to write files inside of the bundle to a writer
+// WriteFileTo Used to write files inside the bundle to a writer
 func (b *Bundle) WriteFileTo(w io.Writer, fileLabel string) (int64, error) {
 	fileBytes, ok := b.content[fileLabel]
 	if !ok {
@@ -145,6 +358,11 @@ func (b *Bundle) Remove(label string) {
 func (b *Bundle) Delete(label string) {
 	delete(b.content, label)
 	delete(b.manifest.Files, label)
+}
+
+func (b *Bundle) Clear() {
+	b.content = make(map[string][]byte)
+	b.manifest.Files = make(map[string]fileDescriptor)
 }
 
 func (b *Bundle) Content() string {

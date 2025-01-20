@@ -18,7 +18,13 @@ func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []strin
 		return err
 	}
 
+	gitContext, err := archive.GetContext()
+	if err != nil {
+		return err
+	}
+
 	bundle := archive.NewBundle()
+	bundle.SetContext(gitContext)
 	bundle.Add(srcContent, label, tags)
 
 	slog.Debug("write bundle")
@@ -41,6 +47,15 @@ func AppendToBundle(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, t
 		return err
 	}
 
+	// Validate the GitContext in the bundle
+	newContext, err := archive.GetContext()
+	if !compareContext(newContext, bundle.Manifest().Context) {
+		// The current context is different from the existing context. Clear all stale artifacts.
+		slog.Info("the git context hash changed, clearing stale bundle contents")
+		bundle.Clear()
+	}
+	bundle.SetContext(newContext)
+
 	slog.Debug("load source file")
 	srcContent, err := io.ReadAll(src)
 	if err != nil {
@@ -62,6 +77,39 @@ func AppendToBundle(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, t
 	slog.Info("bundle write success", "bytes_written", n, "label", label, "tags", tags)
 
 	return nil
+}
+
+// compareContext compares two GitContext objects for equivalence based on their CommitHash and Status slices.
+// It is assumed that if the CommitHash fields are equal that other fields that would naturally change the CommitHash are also equal.
+// Git branch is not considered because it is possible to change the git branch without changing the repository contents in any way.
+// Returns true if both GitContext objects are identical; otherwise, it returns false.
+func compareContext(context1 *archive.GitContext, context2 *archive.GitContext) bool {
+	if context1 == nil || context2 == nil {
+		return context1 == context2
+	}
+	if context1.CommitHash != context2.CommitHash {
+		return false
+	}
+	if len(context1.Status) != len(context2.Status) {
+		return false
+	}
+
+	for i, status := range context1.Status {
+		// this assumes that file statuses are in a stable sort order
+		if i >= len(context2.Status) || !statusEqual(status, context2.Status[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func statusEqual(status1 archive.GitFileStatus, status2 archive.GitFileStatus) bool {
+	return status1.IndexStatus == status2.IndexStatus &&
+		status1.WorkTreeStatus == status2.WorkTreeStatus &&
+		status1.Path == status2.Path &&
+		status1.OriginalPath == status2.OriginalPath &&
+		status1.FileSha256 == status2.FileSha256
 }
 
 // RemoveFromBundle removes a file from an existing bundle
