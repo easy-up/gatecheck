@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"io"
 	"log/slog"
 	"os"
@@ -18,6 +17,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gatecheckdev/gatecheck/pkg/format"
@@ -99,24 +100,30 @@ func NewBundle() *Bundle {
 
 func GetContext() (*GitContext, error) {
 	// Get git information
+	slog.Debug("attempting to get git context")
 	gitCmd := exec.Command("git", "rev-parse", "HEAD")
 	commitHash, err := gitCmd.Output()
 	if err != nil {
 		// If rev-parse fails either the git executable is missing or corrupt, or we are not in a git repo
+		slog.Debug("failed to get git commit hash, skipping git context", "error", err)
 		// If we're not in a git repo then Context should just be nil
 		return nil, nil
 	}
+	slog.Debug("got git commit hash", "hash", strings.TrimSpace(string(commitHash)))
 
 	gitCmd = exec.Command("git", "show", "-s", "--format=%cI%n%B", "HEAD")
 	commitDateAndMessageBytes, err := gitCmd.Output()
+	if err != nil {
+		slog.Error("failed to get commit date and message", "error", err)
+		return nil, fmt.Errorf("failed to get commit date: %w", err)
+	}
+	slog.Debug("got commit date and message", "raw", string(commitDateAndMessageBytes))
+
 	commitDateAndMessage := strings.SplitN(string(commitDateAndMessageBytes), "\n", 2)
 	commitDate := commitDateAndMessage[0]
 	commitMessage := ""
 	if len(commitDateAndMessage) > 1 {
 		commitMessage = commitDateAndMessage[1]
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get commit date: %w", err)
 	}
 
 	// Get git branch name
@@ -151,6 +158,12 @@ func GetContext() (*GitContext, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse commit date: %w", err)
 	}
+
+	slog.Debug("successfully created git context",
+		"commit", strings.TrimSpace(string(commitHash)),
+		"branch", strings.TrimSpace(string(branchName)),
+		"date", commitDateParsed,
+		"status_count", len(gitFileStatuses))
 
 	return &GitContext{
 		CommitHash:    strings.TrimSpace(string(commitHash)),
@@ -389,10 +402,25 @@ func TarGzipBundle(dst io.Writer, bundle *Bundle) (int64, error) {
 	if bundle == nil {
 		return 0, errors.New("cannot write nil bundle")
 	}
+
+	slog.Debug("preparing bundle for tar.gz",
+		"file_count", len(bundle.content),
+		"has_git_context", bundle.manifest.Context != nil)
+
 	tarballBuffer := new(bytes.Buffer)
 	tarWriter := tar.NewWriter(tarballBuffer)
-	manifestBytes, _ := json.Marshal(bundle.manifest)
-	_ = bundle.AddFrom(bytes.NewReader(manifestBytes), "gatecheck-manifest.json", nil)
+	manifestBytes, err := json.Marshal(bundle.manifest)
+	if err != nil {
+		slog.Error("failed to marshal manifest", "error", err)
+		return 0, fmt.Errorf("failed to marshal manifest: %w", err)
+	}
+	slog.Debug("manifest content", "json", string(manifestBytes))
+
+	err = bundle.AddFrom(bytes.NewReader(manifestBytes), "gatecheck-manifest.json", nil)
+	if err != nil {
+		slog.Error("failed to add manifest to bundle", "error", err)
+		return 0, err
+	}
 
 	for label, data := range bundle.content {
 		// Using bytes.Buffer so IO errors are unlikely

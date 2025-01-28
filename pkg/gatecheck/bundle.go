@@ -12,28 +12,45 @@ import (
 // If the bundle already exist, use CreateBundle.
 // this function will completely overwrite an existing bundle
 func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []string) error {
-	slog.Debug("add to source file content to bundle", "label", label, "tags", tags)
+	slog.Debug("creating new bundle")
 	srcContent, err := io.ReadAll(src)
 	if err != nil {
+		slog.Error("failed to read source content", "error", err)
 		return err
 	}
 
 	gitContext, err := archive.GetContext()
 	if err != nil {
+		slog.Error("failed to get git context", "error", err)
 		return err
+	}
+	if gitContext == nil {
+		slog.Warn("no git context available, bundle will not include git information")
+	} else {
+		slog.Info("git context for bundle",
+			"commit", gitContext.CommitHash,
+			"branch", gitContext.Branch,
+			"date", gitContext.CommitDate,
+			"message", gitContext.CommitMessage,
+			"status_count", len(gitContext.Status))
 	}
 
 	bundle := archive.NewBundle()
 	bundle.SetContext(gitContext)
 	bundle.Add(srcContent, label, tags)
 
-	slog.Debug("write bundle")
+	slog.Debug("writing bundle to tar.gz")
 	n, err := archive.TarGzipBundle(dstBundle, bundle)
 	if err != nil {
+		slog.Error("failed to write bundle", "error", err)
 		return err
 	}
 
-	slog.Info("bundle write success", "bytes_written", n, "label", label, "tags", tags)
+	slog.Info("bundle write success",
+		"bytes_written", n,
+		"label", label,
+		"tags", tags,
+		"has_git_context", gitContext != nil)
 
 	return nil
 }

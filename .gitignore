@@ -2,3 +2,5 @@ bin/
 dist/
 book/
 cover.cov
+artifacts/
+.env.local
