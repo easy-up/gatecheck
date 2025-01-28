@@ -67,6 +67,9 @@ func AppendToBundle(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, t
 
 	// Validate the GitContext in the bundle
 	newContext, err := archive.GetContext()
+	if err != nil {
+		return err
+	}
 	if !compareContext(newContext, bundle.Manifest().Context) {
 		// The current context is different from the existing context. Clear all stale artifacts.
 		slog.Info("the git context hash changed, clearing stale bundle contents")

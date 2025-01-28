@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/easy-up/go-coverage"
 	"io"
 	"log/slog"
 	"slices"
 	"sort"
 	"strings"
+
+	"github.com/easy-up/go-coverage"
 
 	"github.com/gatecheckdev/gatecheck/pkg/archive"
 	"github.com/gatecheckdev/gatecheck/pkg/artifacts"
@@ -624,7 +625,7 @@ func validateGrypeReportWithFetch(r io.Reader, config *Config, options *fetchOpt
 
 	if err := LoadCatalogAndData(config, catalog, epssData, options); err != nil {
 		slog.Error("validate grype report: load epss data from file or api", "error", err)
-		return errors.New("Cannot run Grype validation: Cannot load external validation data. See log for details.")
+		return errors.New("cannot run Grype validation: cannot load external validation data - see log for details")
 	}
 
 	return validateGrypeFrom(r, config, catalog, epssData)
@@ -635,7 +636,7 @@ func validateGrypeFrom(r io.Reader, config *Config, catalog *kev.Catalog, epssDa
 	report := &artifacts.GrypeReportMin{}
 	if err := json.NewDecoder(r).Decode(report); err != nil {
 		slog.Error("decode grype report for validation", "error", err)
-		return errors.New("Cannot run Grype validation: Report decoding failed. See log for details.")
+		return errors.New("cannot run Grype validation: report decoding failed - see log for details")
 	}
 
 	return validateGrypeRules(config, report, catalog, epssData)
@@ -649,7 +650,7 @@ func validateCyclonedxReportWithFetch(r io.Reader, config *Config, options *fetc
 
 	if err := LoadCatalogAndData(config, catalog, epssData, options); err != nil {
 		slog.Error("validate cyclonedx report: load epss data from file or api", "error", err)
-		return errors.New("Cannot run Cyclonedx validation: Cannot load external validation data. See log for details.")
+		return errors.New("cannot run Cyclonedx validation: cannot load external validation data - see log for details")
 	}
 	return validateCyclonedxFrom(r, config, catalog, epssData)
 }
@@ -658,7 +659,7 @@ func validateCyclonedxFrom(r io.Reader, config *Config, catalog *kev.Catalog, ep
 	report := &artifacts.CyclonedxReportMin{}
 	if err := json.NewDecoder(r).Decode(report); err != nil {
 		slog.Error("decode cyclonedx report for validation", "error", err)
-		return errors.New("Cannot run Cyclonedx validation: Report decoding failed. See log for details.")
+		return errors.New("cannot run Cyclonedx validation: report decoding failed - see log for details")
 	}
 
 	return validateCyclonedxRules(config, report, catalog, epssData)
@@ -669,7 +670,7 @@ func validateSemgrepReport(r io.Reader, config *Config) error {
 	report := &artifacts.SemgrepReportMin{}
 	if err := json.NewDecoder(r).Decode(report); err != nil {
 		slog.Error("decode semgrep report for validation", "error", err)
-		return errors.New("Cannot run Semgrep report validation: Report decoding failed. See log for details.")
+		return errors.New("cannot run Semgrep report validation: report decoding failed - see log for details")
 	}
 
 	return validateSemgrepRules(config, report)
@@ -680,7 +681,7 @@ func validateGitleaksReport(r io.Reader, config *Config) error {
 	report := &artifacts.GitLeaksReportMin{}
 	if err := json.NewDecoder(r).Decode(report); err != nil {
 		slog.Error("decode gitleaks report for validation", "error", err)
-		return errors.New("Cannot run Semgrep report validation: Report decoding failed. See log for details.")
+		return errors.New("cannot run Semgrep report validation: report decoding failed - see log for details")
 	}
 	return validateGitleaksRules(config, report)
 }
@@ -736,7 +737,7 @@ func validateBundle(r io.Reader, config *Config, options *fetchOptions) error {
 	bundle := archive.NewBundle()
 	if err := archive.UntarGzipBundle(r, bundle); err != nil {
 		slog.Error("decode gatecheck bundle")
-		return errors.New("Cannot run Gatecheck Bundle validation: Bundle decoding failed. See log for details.")
+		return errors.New("cannot run Gatecheck Bundle validation: bundle decoding failed - see log for details")
 	}
 
 	catalog := kev.NewCatalog()
@@ -744,7 +745,7 @@ func validateBundle(r io.Reader, config *Config, options *fetchOptions) error {
 
 	if err := LoadCatalogAndData(config, catalog, epssData, options); err != nil {
 		slog.Error("validate cyclonedx report: load epss data from file or api", "error", err)
-		return errors.New("Cannot run Cyclonedx validation: Cannot load external validation data. See log for details.")
+		return errors.New("cannot run Cyclonedx validation: cannot load external validation data - see log for details")
 	}
 
 	var errs error
@@ -799,7 +800,7 @@ func validateGrypeRules(config *Config, report *artifacts.GrypeReportMin, catalo
 	})
 	// 1. Deny List - Fail Matching
 	if !ruleGrypeCVEDeny(config, report) {
-		return newValidationErr("Grype: CVE explicitly denied")
+		return newValidationErr("grype: CVE explicitly denied")
 	}
 
 	// Ignore any CVEs that don't meet the vulnerability threshold or the EPPS threshold
@@ -810,7 +811,7 @@ func validateGrypeRules(config *Config, report *artifacts.GrypeReportMin, catalo
 
 	// 3. KEV Catalog Limit - fail matching
 	if !ruleGrypeKEVLimit(config, report, catalog) {
-		return newValidationErr("Grype: CVE matched to KEV Catalog")
+		return newValidationErr("grype: CVE matched to KEV Catalog")
 	}
 
 	// 4. EPSS Allowance - remove from matches
@@ -818,12 +819,12 @@ func validateGrypeRules(config *Config, report *artifacts.GrypeReportMin, catalo
 
 	// 5. EPSS Limit - Fail Exceeding TODO: Implement
 	if !ruleGrypeEPSSLimit(config, report, data) {
-		return newValidationErr("Grype: EPSS Limit Exceeded")
+		return newValidationErr("grype: EPSS Limit Exceeded")
 	}
 
 	// 6. Severity Count Limit
 	if !ruleGrypeSeverityLimit(config, report) {
-		return newValidationErr("Grype: Severity Limit Exceeded")
+		return newValidationErr("grype: severity limit exceeded")
 	}
 
 	return nil
@@ -832,7 +833,7 @@ func validateGrypeRules(config *Config, report *artifacts.GrypeReportMin, catalo
 func validateCyclonedxRules(config *Config, report *artifacts.CyclonedxReportMin, catalog *kev.Catalog, data *epss.Data) error {
 	// 1. Deny List - Fail Matching
 	if !ruleCyclonedxCVEDeny(config, report) {
-		return newValidationErr("CycloneDx: CVE explicitly denied")
+		return newValidationErr("cycloneDx: CVE explicitly denied")
 	}
 
 	// 2. CVE Allowance - remove from matches
@@ -840,7 +841,7 @@ func validateCyclonedxRules(config *Config, report *artifacts.CyclonedxReportMin
 
 	// 3. KEV Catalog Limit - fail matching
 	if !ruleCyclonedxKEVLimit(config, report, catalog) {
-		return newValidationErr("CycloneDx: CVE Matched to KEV Catalog")
+		return newValidationErr("cycloneDx: CVE matched to KEV Catalog")
 	}
 
 	// 4. EPSS Allowance - remove from matches
@@ -848,12 +849,12 @@ func validateCyclonedxRules(config *Config, report *artifacts.CyclonedxReportMin
 
 	// 5. EPSS Limit - Fail Exceeding
 	if !ruleCyclonedxEPSSLimit(config, report, data) {
-		return newValidationErr("CycloneDx: EPSS Limit Exceeded")
+		return newValidationErr("cycloneDx: EPSS Limit Exceeded")
 	}
 
 	// 6. Severity Count Limit
 	if !ruleCyclonedxSeverityLimit(config, report) {
-		return newValidationErr("CycloneDx: Severity Limit Exceeded")
+		return newValidationErr("cycloneDx: severity limit exceeded")
 	}
 
 	return nil
@@ -869,7 +870,7 @@ func validateSemgrepRules(config *Config, report *artifacts.SemgrepReportMin) er
 
 	// 2. Severity Count Limit
 	if !ruleSemgrepSeverityLimit(config, report) {
-		return newValidationErr("Semgrep: Severity Limit Exceeded")
+		return newValidationErr("semgrep: severity limit exceeded")
 	}
 
 	return nil
@@ -878,7 +879,7 @@ func validateSemgrepRules(config *Config, report *artifacts.SemgrepReportMin) er
 func validateGitleaksRules(config *Config, report *artifacts.GitLeaksReportMin) error {
 	// 1. Limit Secrets - fail
 	if !ruleGitLeaksLimit(config, report) {
-		return newValidationErr("Gitleaks: Secrets Detected")
+		return newValidationErr("gitleaks: secrets detected")
 	}
 	return nil
 }
