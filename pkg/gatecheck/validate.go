@@ -19,7 +19,7 @@ import (
 	"github.com/gatecheckdev/gatecheck/pkg/kev"
 )
 
-var ErrValidationFailure = errors.New("Validation Failure")
+var ErrValidationFailure = errors.New("validation Failure")
 
 func newValidationErr(details string) error {
 	return fmt.Errorf("%w: %s", ErrValidationFailure, details)
@@ -63,7 +63,7 @@ func Validate(config *Config, reportSrc io.Reader, targetFilename string, option
 
 	default:
 		slog.Error("unsupported file type, cannot be determined from filename", "filename", targetFilename)
-		return errors.New("Failed to validate artifact. See log for details.")
+		return errors.New("failed to validate artifact. See log for details")
 	}
 }
 
