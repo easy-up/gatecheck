@@ -50,6 +50,7 @@ type GitContext struct {
 	CommitMessage string          `json:"commitMessage"`
 	Status        []GitFileStatus `json:"status"`
 	Branch        string          `json:"branch"`
+	Owner         string          `json:"owner"`
 }
 
 type GitFileStatus struct {
@@ -111,6 +112,16 @@ func GetContext() (*GitContext, error) {
 	}
 	slog.Debug("got git commit hash", "hash", strings.TrimSpace(string(commitHash)))
 
+	// Get repository owner from remote URL
+	gitCmd = exec.Command("git", "remote", "get-url", "origin")
+	remoteURL, err := gitCmd.Output()
+	if err != nil {
+		slog.Error("failed to get remote URL", "error", err)
+		return nil, fmt.Errorf("failed to get remote URL: %w", err)
+	}
+	owner := extractOwnerFromURL(string(remoteURL))
+	slog.Debug("got repository owner", "owner", owner)
+
 	gitCmd = exec.Command("git", "show", "-s", "--format=%cI%n%B", "HEAD")
 	commitDateAndMessageBytes, err := gitCmd.Output()
 	if err != nil {
@@ -142,7 +153,7 @@ func GetContext() (*GitContext, error) {
 
 	statusLines := strings.Split(string(gitStatus), "\n")
 
-	var gitFileStatuses []GitFileStatus
+	gitFileStatuses := make([]GitFileStatus, 0)
 	for _, line := range statusLines {
 		if strings.TrimSpace(line) == "" {
 			continue
@@ -171,6 +182,7 @@ func GetContext() (*GitContext, error) {
 		CommitMessage: strings.TrimSpace(commitMessage),
 		Status:        gitFileStatuses,
 		Branch:        strings.TrimSpace(string(branchName)),
+		Owner:         owner,
 	}, nil
 }
 
@@ -479,4 +491,30 @@ func UntarGzipBundle(src io.Reader, bundle *Bundle) error {
 	bundle.manifest = *manifest
 
 	return nil
+}
+
+// extractOwnerFromURL extracts the owner (user or org) from a git remote URL
+func extractOwnerFromURL(url string) string {
+	url = strings.TrimSpace(url)
+
+	// Handle SSH URLs like git@github.com:owner/repo.git
+	if strings.HasPrefix(url, "git@") {
+		parts := strings.Split(url, ":")
+		if len(parts) > 1 {
+			ownerRepo := strings.Split(parts[1], "/")
+			if len(ownerRepo) > 0 {
+				return strings.TrimSpace(ownerRepo[0])
+			}
+		}
+	}
+
+	// Handle HTTPS URLs like https://github.com/owner/repo.git
+	parts := strings.Split(url, "/")
+	for i, part := range parts {
+		if strings.Contains(part, "github.com") && i+1 < len(parts) {
+			return strings.TrimSpace(parts[i+1])
+		}
+	}
+
+	return ""
 }
