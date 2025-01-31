@@ -9,7 +9,7 @@ import (
 
 // CreateBundle create a new bundle with a file
 //
-// If the bundle already exist, use CreateBundle.
+// If the bundle already exist, use AppendToBundle.
 // this function will completely overwrite an existing bundle
 func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []string) error {
 	slog.Debug("creating new bundle")

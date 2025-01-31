@@ -8,7 +8,7 @@ packages the app and releases it to the GitHub UI.
 1. Run `just test` to make sure unit testing still passes after upgrading
 1. Commit the changes `git commit -am "chore: upgrade dependencies"`
 1. Update CHANGELOG.md
-1. Release commit (optional) `git commit -m "release: vx.x.x && git push`
+1. Release commit (optional) `git commit -m "release: vx.x.x" && git push`
 1. Wait for unit testing action to pass `gh run watch`
 1. Release tag `git tag -s -a vX.X.X -m "Release version X.X.X"`
 1. git push tag `git push vX.X.X`
