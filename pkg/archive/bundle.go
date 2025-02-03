@@ -209,18 +209,26 @@ func parseGitStatusLine(line string) (GitFileStatus, error) {
 	}
 
 	if computeHash {
-		file, err := os.Open(path)
-		if err == nil {
-			defer file.Close()
+		fileStat, err := os.Stat(path)
+		if err != nil {
+			slog.Warn("Unable to stat file to compute SHA256 hash", "path", path, "error", err)
+			return GitFileStatus{}, fmt.Errorf("failed to stat file '%s': %w", path, err)
+		}
 
-			hasher := sha256.New()
-			if _, err := io.Copy(hasher, file); err != nil {
-				return GitFileStatus{}, fmt.Errorf("failed to compute SHA256 hash for file '%s': %w", path, err)
+		if !fileStat.IsDir() {
+			file, err := os.Open(path)
+			if err == nil {
+				defer file.Close()
+
+				hasher := sha256.New()
+				if _, err := io.Copy(hasher, file); err != nil {
+					return GitFileStatus{}, fmt.Errorf("failed to compute SHA256 hash for file '%s': %w", path, err)
+				}
+				fileSha256 = hex.EncodeToString(hasher.Sum([]byte{}))
+				slog.Debug("file SHA256 hash computed", "path", path, "hash", fileSha256)
+			} else {
+				slog.Warn("Unable to open file to compute SHA256 hash", "path", path, "error", err)
 			}
-			fileSha256 = hex.EncodeToString(hasher.Sum([]byte{}))
-			slog.Debug("file SHA256 hash computed", "path", path, "hash", fileSha256)
-		} else {
-			slog.Warn("Unable to open file to compute SHA256 hash", "path", path, "error", err)
 		}
 	}
 
