@@ -99,9 +99,3 @@ coverage:
     lineThreshold: 0     # Minimum required line coverage percentage
     functionThreshold: 0  # Minimum required function coverage percentage
     branchThreshold: 0   # Minimum required branch coverage percentage
-
-# API configuration for submitting results
-api:
-    enabled: true                                        # Whether to submit results to API
-    endpoint: http://localhost:5168/Build/SubmitArtifacts # API endpoint for submitting results
-    skipVerify: true                                    # Whether to skip SSL verification
