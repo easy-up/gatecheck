@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [0.9.0] - 2025-01-31
+
+* added logging for git context. Added config files for running portage on gatecheck. (#5)
+* Improved Bundle Management (#4)
+
 ## [0.8.0] - 2024-10-23
 
 * Fixed a bug where validation failures were not resulting in a non-zero exit code

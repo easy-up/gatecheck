@@ -29,7 +29,7 @@ dependencies:
 
 build:
 	$(info ******************** Compiling binary to ./bin ********************)
-	go build -ldflags="-X 'main.cliVersion=$$(git describe --tags)' -X 'main.gitCommit=$$(git rev-parse HEAD)' -X 'main.buildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$$(git log -1 --pretty=%B)'" -o ${BINARY_NAME} ${MAIN_PACKAGE_PATH}
+	go build -ldflags="-X 'main.cliVersion=$$(git describe --tags)' -X 'main.gitCommit=$$(git rev-parse HEAD)' -X 'main.buildDate=$$(date -u +%Y-%m-%dT%H:%M:%SZ)' -X 'main.gitDescription=$$(git log -1 --pretty=%B | tr \' _)'" -o ${BINARY_NAME} ${MAIN_PACKAGE_PATH}
 
 release-snapshot:
 	goreleaser release --snapshot --rm-dist
