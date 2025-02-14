@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [0.9.1] - 2025-02-14
+
+* portage config cleanup
+* Fixed issue generating git status info for untract directories
+* Fixed more instances of the issue with ' in commit messages
+
 ## [0.9.0] - 2025-01-31
 
 * added logging for git context. Added config files for running portage on gatecheck. (#5)
