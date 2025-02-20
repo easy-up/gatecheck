@@ -47,4 +47,4 @@ deploy:
   submit: false            # Whether to submit the artifacts to the configured API endpoint (true/false)
   successWebhooks:
     - url: "http://localhost:5168/Build/SubmitArtifacts"  # Using the same endpoint from .custom-gatecheck.yml for consistency
-      authorizationVar: "DEPLOY_WEBHOOK_AUTH_TOKEN"  # Environment variable containing the auth token
+      authorizationVar: "DEPLOY_WEBHOOK_AUTH_HEADER"  # Environment variable containing the auth token
