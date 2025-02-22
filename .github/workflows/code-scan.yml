@@ -1,0 +1,23 @@
+name: Scan gatecheck
+run-name: "Scan the gatecheck codebase"
+permissions:
+  contents: read
+  checks: write
+  packages: write
+on:
+  workflow_dispatch:
+  push:
+    branches: [ '*' ]
+    tags: [ '*' ]
+jobs:
+  code_scan:
+    runs-on: ubuntu-latest
+    name: Portage Code Scan
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Portage CD Scans
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@debug-deploy-job
+        with:
+          image_build_enabled: 'false'
+          image_scan_enabled: 'false'
