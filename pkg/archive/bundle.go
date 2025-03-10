@@ -143,6 +143,7 @@ func GetContext() (*GitContext, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get branch name: %w", err)
 	}
+	slog.Debug("got git branch name", "branch", strings.TrimSpace(string(branchName)))
 
 	// Get git status
 	gitCmd = exec.Command("git", "status", "--porcelain")
