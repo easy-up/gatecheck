@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [0.9.2] - 2025-03-29
+
+ * Enabled portage code scan
+ * Switch to just recording the default (origin) remote URL, instead of 'owner'
+ * added the owner or user of the submission so it can be validated against the jwt git info on the belay side
+ * added logging for git context.  Added config files for running portage on gatecheck.
+
 ## [0.9.1] - 2025-02-14
 
 * portage config cleanup
