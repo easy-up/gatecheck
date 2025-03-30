@@ -45,8 +45,10 @@ imagePublish:
 
 # Deploy Configuration
 deploy:
-  enabled: false                                   # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
-  gatecheckConfigFilename: ".custom-gatecheck.yml" # Filename for gatecheck config (e.g. gatecheck-config.json)
+  enabled: true           # Enable/Disable the deploy pipeline (true/false).  When true, the .gatecheck.yml file is used, otherwise the default gatecheck config is used.
+  gatecheckConfigFilename: ".custom-gatecheck.yml"  # Filename for gatecheck config (e.g. gatecheck-config.json)
+  submit: true            # Whether to submit the artifacts to the configured API endpoint (true/false)
   successWebhooks:
-    - url: "https://belay-api.dev.holomuatech.online/Build/SubmitArtifacts"  # Using the same endpoint from .custom-gatecheck.yml for consistency
-      authorizationVar: "DEPLOY_WEBHOOK_AUTH_TOKEN"  # Environment variable containing the auth token
+    # - url: "http://localhost:5168/Build/SubmitArtifacts"  # Using the same endpoint from .custom-gatecheck.yml for consistency
+    - url: "https://f412-76-83-183-148.ngrok-free.app/Build/SubmitArtifacts"
+      authorizationVar: "DEPLOY_WEBHOOK_AUTH_HEADER"  # Environment variable containing the auth token
