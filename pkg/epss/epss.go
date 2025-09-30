@@ -103,7 +103,13 @@ func DownloadData(w io.Writer, optionFuncs ...fetchOptionFunc) error {
 	}(time.Now())
 
 	logger.Debug("request epss data from api")
-	res, err := options.Client.Get(options.URL)
+	req, err := http.NewRequest("GET", options.URL, nil)
+	if err != nil {
+		logger.Error("epss api failed to create request", "error", err)
+		return errors.New("failed to get EPSS Scores. see log for details")
+	}
+	req.Header.Set("User-Agent", "gatecheck/1.0")
+	res, err := options.Client.Do(req)
 
 	switch {
 	case err != nil:
