@@ -111,6 +111,22 @@ func DownloadData(w io.Writer, optionFuncs ...fetchOptionFunc) error {
 	req.Header.Set("User-Agent", "gatecheck/1.0")
 	res, err := options.Client.Do(req)
 
+	// If today's data returns 403 (not available yet), try yesterday's data
+	if err == nil && res.StatusCode == http.StatusForbidden {
+		res.Body.Close()
+		yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		retryURL := fmt.Sprintf("%s/epss_scores-%s.csv.gz", defaultEPSSBaseURL, yesterday)
+		slog.Warn("epss data not available for today, retrying with yesterday's data", "retry_url", retryURL)
+
+		req, err = http.NewRequest("GET", retryURL, nil)
+		if err != nil {
+			logger.Error("epss api failed to create retry request", "error", err)
+			return errors.New("failed to get EPSS Scores. see log for details")
+		}
+		req.Header.Set("User-Agent", "gatecheck/1.0")
+		res, err = options.Client.Do(req)
+	}
+
 	switch {
 	case err != nil:
 		logger.Error("epss api request failed during fetch data", "error", err)
