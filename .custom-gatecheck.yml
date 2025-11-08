@@ -29,14 +29,22 @@ grype:
     cveLimit:
         enabled: false    # Whether to enforce specific CVE limits
         cves: []         # List of specific CVEs to check against
-    
+                         # Example with metadata tags:
+                         # - id: "CVE-2024-1234"
+                         #   metadata:
+                         #     tags: ["blocking", "high-priority"]
+
     epssRiskAcceptance:
         enabled: false    # Whether to accept risks based on EPSS scores
         score: 0.001     # EPSS score threshold for risk acceptance
-    
+
     cveRiskAcceptance:
         enabled: false    # Whether to accept risks for specific CVEs
         cves: []         # List of accepted CVEs
+                         # Example with metadata tags:
+                         # - id: "CVE-2023-5678"
+                         #   metadata:
+                         #     tags: ["accepted", "low-risk", "temporary"]
 
 # CycloneDX configuration (for Software Bill of Materials scanning)
 cyclonedx:
@@ -62,12 +70,20 @@ cyclonedx:
     cveLimit:
         enabled: false
         cves: []
+                         # Example with metadata tags:
+                         # - id: "CVE-2024-1234"
+                         #   metadata:
+                         #     tags: ["blocking", "high-priority"]
     epssRiskAcceptance:
         enabled: false
         score: 0
     cveRiskAcceptance:
         enabled: false
         cves: []
+                         # Example with metadata tags:
+                         # - id: "CVE-2023-5678"
+                         #   metadata:
+                         #     tags: ["accepted", "low-risk", "temporary"]
 
 # Semgrep configuration (for static code analysis)
 semgrep:
