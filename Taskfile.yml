@@ -1,7 +1,8 @@
 version: "3"
 
 env:
-  INSTALL_DIR: "/usr/local/bin"
+  INSTALL_DIR:
+    sh: "echo ${INSTALL_DIR:-/usr/local/bin}"
   IMAGE_TAG: "gatecheck:latest"
 
 tasks:
@@ -14,7 +15,7 @@ tasks:
       GIT_COMMIT:
         sh: git rev-parse HEAD
       GIT_DESCRIPTION:
-        sh: git log -1 --pretty=%B
+        sh: git log -1 --pretty=%B | sed "s/'//g"
     cmds:
       - mkdir -p bin
       - go build -ldflags="-X 'main.cliVersion={{.CLI_VERSION}}' -X 'main.gitCommit={{.GIT_COMMIT}}' -X 'main.buildDate={{.BUILD_DATE}}' -X 'main.gitDescription={{.GIT_DESCRIPTION}}'" -o ./bin ./cmd/gatecheck
