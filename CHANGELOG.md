@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [0.9.3] - 2026-03-21
+
+ * Merged upstream main
+ * Minor build task fix
+
 ## [0.9.2] - 2025-03-29
 
  * Enabled portage code scan
