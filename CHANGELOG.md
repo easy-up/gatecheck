@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+## [0.9.3] - 2026-03-21
+
+ * Merged upstream main
+ * Minor build task fix
+
+## [0.9.2] - 2025-03-29
+
+ * Enabled portage code scan
+ * Switch to just recording the default (origin) remote URL, instead of 'owner'
+ * added the owner or user of the submission so it can be validated against the jwt git info on the belay side
+ * added logging for git context.  Added config files for running portage on gatecheck.
+
 ## [0.9.1] - 2025-02-14
 
 * portage config cleanup
@@ -18,11 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * added logging for git context. Added config files for running portage on gatecheck. (#5)
 * Improved Bundle Management (#4)
 
+## [0.8.1] - 2025-04-09
+
+### Fixed
+
+- Updated EPSS schema to work with 3.14.2025
+
 ## [0.8.0] - 2024-10-23
 
 * Fixed a bug where validation failures were not resulting in a non-zero exit code
 * Renamed the --file / -f CLI argument to --config / -f for consistency with other tools
-* improvements to validate output  
+* improvements to validate output
    These "improvements" are short term hacks. There is a need for a fundamental
    overhaul of how output is generated to improve usability
 * Implemented code coverage support.

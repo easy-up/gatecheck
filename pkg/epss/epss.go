@@ -19,6 +19,10 @@ import (
 const (
 	dataModel       = "v2025.03.14"
 	modelDateLayout = "2006-01-02T15:04:05Z"
+	// belay_main: empiricalsecurity.com is the current EPSS feed. cyentia.com
+	// (main's choice) returns 403 without a proper User-Agent and is no longer
+	// the primary host. See commits c6c756a and 85263ec for the migration
+	// and retry/User-Agent handling.
 	defaultEPSSBaseURL = "https://epss.empiricalsecurity.com"
 )
 

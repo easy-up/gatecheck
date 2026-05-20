@@ -4,3 +4,4 @@ book/
 cover.cov
 artifacts/
 .env.local
+.task/
