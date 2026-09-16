@@ -5,6 +5,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/gatecheckdev/gatecheck/pkg/archive"
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +43,7 @@ var bundleCreateCmd = &cobra.Command{
 		label := path.Base(targetFilename)
 		bf, tf := RuntimeConfig.bundleFile, RuntimeConfig.targetFile
 		tags := RuntimeConfig.BundleTagValue
-		return gatecheck.CreateBundle(bf, tf, label, tags)
+		return gatecheck.CreateBundleWithBuildContext(bf, tf, label, tags, buildContextFromFlags(cmd))
 	},
 }
 
@@ -74,7 +75,7 @@ var bundleAddCmd = &cobra.Command{
 		label := path.Base(targetFilename)
 		bf, tf := RuntimeConfig.bundleFile, RuntimeConfig.targetFile
 		tags := RuntimeConfig.BundleTagValue
-		return gatecheck.AppendToBundle(bf, tf, label, tags)
+		return gatecheck.AppendToBundleWithBuildContext(bf, tf, label, tags, buildContextFromFlags(cmd))
 	},
 }
 
@@ -102,7 +103,30 @@ var bundleRemoveCmd = &cobra.Command{
 func newBundleCommand() *cobra.Command {
 	RuntimeConfig.BundleTag.SetupCobra(bundleCreateCmd)
 	RuntimeConfig.BundleTag.SetupCobra(bundleAddCmd)
+	setupBuildContextFlags(bundleCreateCmd)
+	setupBuildContextFlags(bundleAddCmd)
 
 	bundleCmd.AddCommand(bundleCreateCmd, bundleAddCmd, bundleRemoveCmd)
 	return bundleCmd
+}
+
+func setupBuildContextFlags(cmd *cobra.Command) {
+	cmd.Flags().String("build-group-id", "", "identifier shared by all images in this build")
+	cmd.Flags().String("image-name", "", "full registry image path without a tag or digest")
+	cmd.Flags().StringSlice("build-image-name", nil, "image name belonging to this build; may be repeated")
+}
+
+func buildContextFromFlags(cmd *cobra.Command) *archive.BuildContext {
+	buildGroupID, _ := cmd.Flags().GetString("build-group-id")
+	imageName, _ := cmd.Flags().GetString("image-name")
+	buildImageNames, _ := cmd.Flags().GetStringSlice("build-image-name")
+	if buildGroupID == "" && imageName == "" && len(buildImageNames) == 0 {
+		return nil
+	}
+
+	return &archive.BuildContext{
+		BuildGroupID:    buildGroupID,
+		ImageName:       imageName,
+		BuildImageNames: buildImageNames,
+	}
 }

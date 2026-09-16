@@ -2,6 +2,7 @@ package archive
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"os"
 	"strings"
@@ -42,6 +43,40 @@ func TestBundle_WriteFileTo(t *testing.T) {
 			t.Fatal("want: badreader error got: nil")
 		}
 	})
+}
+
+func TestBundle_BuildContextInManifest(t *testing.T) {
+	bundle := NewBundle()
+	bundle.SetBuildContext(&BuildContext{
+		BuildGroupID:    "build-123",
+		ImageName:       "registry.example.com/team/api",
+		BuildImageNames: []string{"registry.example.com/team/api", "registry.example.com/team/worker"},
+	})
+
+	manifestBytes, err := json.Marshal(bundle.Manifest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(manifestBytes, []byte(`"buildImageNames"`)) {
+		t.Fatalf("want buildImageNames in manifest: %s", manifestBytes)
+	}
+
+	var manifest Manifest
+	if err := json.Unmarshal(manifestBytes, &manifest); err != nil {
+		t.Fatal(err)
+	}
+	if manifest.Build == nil {
+		t.Fatal("want build context")
+	}
+	if manifest.Build.BuildGroupID != "build-123" {
+		t.Fatalf("want group ID build-123, got %q", manifest.Build.BuildGroupID)
+	}
+	if manifest.Build.ImageName != "registry.example.com/team/api" {
+		t.Fatalf("want image name registry.example.com/team/api, got %q", manifest.Build.ImageName)
+	}
+	if len(manifest.Build.BuildImageNames) != 2 {
+		t.Fatalf("want 2 build image names, got %d", len(manifest.Build.BuildImageNames))
+	}
 }
 
 type badWriter struct{}

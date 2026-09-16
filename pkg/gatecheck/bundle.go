@@ -12,6 +12,11 @@ import (
 // If the bundle already exist, use AppendToBundle.
 // this function will completely overwrite an existing bundle
 func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []string) error {
+	return CreateBundleWithBuildContext(dstBundle, src, label, tags, nil)
+}
+
+// CreateBundleWithBuildContext creates a new bundle with producer-supplied build metadata.
+func CreateBundleWithBuildContext(dstBundle io.Writer, src io.Reader, label string, tags []string, buildContext *archive.BuildContext) error {
 	slog.Debug("creating new bundle")
 	srcContent, err := io.ReadAll(src)
 	if err != nil {
@@ -37,6 +42,7 @@ func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []strin
 
 	bundle := archive.NewBundle()
 	bundle.SetContext(gitContext)
+	bundle.SetBuildContext(buildContext)
 	bundle.Add(srcContent, label, tags)
 
 	slog.Debug("writing bundle to tar.gz")
@@ -59,6 +65,11 @@ func CreateBundle(dstBundle io.Writer, src io.Reader, label string, tags []strin
 //
 // If the bundle doesn't exist, use CreateBundle
 func AppendToBundle(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, tags []string) error {
+	return AppendToBundleWithBuildContext(bundleRWS, src, label, tags, nil)
+}
+
+// AppendToBundleWithBuildContext adds a file and retains producer-supplied build metadata.
+func AppendToBundleWithBuildContext(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, tags []string, buildContext *archive.BuildContext) error {
 	slog.Debug("load bundle")
 	bundle := archive.NewBundle()
 	if err := archive.UntarGzipBundle(bundleRWS, bundle); err != nil {
@@ -76,6 +87,9 @@ func AppendToBundle(bundleRWS io.ReadWriteSeeker, src io.Reader, label string, t
 		bundle.Clear()
 	}
 	bundle.SetContext(newContext)
+	if buildContext != nil {
+		bundle.SetBuildContext(buildContext)
+	}
 
 	slog.Debug("load source file")
 	srcContent, err := io.ReadAll(src)

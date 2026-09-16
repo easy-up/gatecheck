@@ -15,7 +15,7 @@ tasks:
       GIT_COMMIT:
         sh: git rev-parse HEAD
       GIT_DESCRIPTION:
-        sh: git log -1 --pretty=%B | sed "s/'//g"
+        sh: git log -1 --pretty=%s | LC_ALL=C sed 's/[^[:alnum:] .,_-]/_/g'
     cmds:
       - mkdir -p bin
       - go build -ldflags="-X 'main.cliVersion={{.CLI_VERSION}}' -X 'main.gitCommit={{.GIT_COMMIT}}' -X 'main.buildDate={{.BUILD_DATE}}' -X 'main.gitDescription={{.GIT_DESCRIPTION}}'" -o ./bin ./cmd/gatecheck

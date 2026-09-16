@@ -22,6 +22,21 @@ curl -L <OS Specific Release>.tar.gz | tar xz
 ./gatecheck --help
 ```
 
+### Building from Source
+
+Building Gatecheck requires Go 1.23 or newer and [Task](https://taskfile.dev/).
+
+```shell
+task build
+```
+
+The compiled binary is written to `bin/gatecheck`. Run the tests or install the binary with:
+
+```shell
+task test
+task install
+```
+
 The Gatecheck CLI supports ```--help``` for every command for more detail usage.
 
 Generate a configuration file with the default thresholds set

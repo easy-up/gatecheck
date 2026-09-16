@@ -5,7 +5,8 @@
 Before installing Gatecheck, make sure your system meets the following requirements:
 
 - **Operating System**: Windows, macOS, or Linux.
-- **Go**: Version 1.22.0 or newer (only required if you plan to build the application from source).
+- **Go**: Version 1.23.0 or newer (only required if you plan to build the application from source).
+- **Task**: The [Task](https://taskfile.dev/) command runner (only required for source builds).
 
 ## Installation Options
 
@@ -35,14 +36,21 @@ the source code.
    ```
    cd gatecheck
    ```
-3. **Install Task**: Ensure you have [Task](https://taskfile.dev/) installed.
-4. **Build and Install**: Run:
+3. **Build**: Compile the local binary:
+   ```
+   task build
+   ```
+   The binary is written to `bin/gatecheck`.
+4. **Test**: Run the test suite:
+   ```
+   task test
+   ```
+5. **Install**: To copy the binary to `/usr/local/bin` (configurable via `INSTALL_DIR`), run:
    ```
    task install
    ```
-   This will build the binary and install it to `/usr/local/bin` (configurable via INSTALL_DIR).
 
-5. **Verify Installation**: Check the application version to confirm successful installation:
+6. **Verify Installation**: Check the application version to confirm successful installation:
    ```
    gatecheck --version
    ```
