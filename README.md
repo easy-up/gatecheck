@@ -66,4 +66,6 @@ List with EPSS Scores is support for Grype and Cyclondex reports
 
 Bundling Artifacts produces a gzipped tarball with an associated manifest for metadata.
 
+For multi-image CI builds, see the [logical-build context contract](docs/gatecheck-bundle.md#build-context). Gatecheck records caller-supplied identity; it does not generate or infer a build group ID.
+
 ![Gatecheck Bundle](https://static.gatecheck.dev/gatecheck-bundle.gif)
