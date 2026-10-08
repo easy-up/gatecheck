@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+ * Added optional `build.publishedImage`, `build.imageDigest` and `build.imageVerification` manifest fields (`--build-published-image`, `--build-image-digest`, `--build-image-verification`)
+
 ## [0.9.3] - 2026-03-21
 
  * Merged upstream main

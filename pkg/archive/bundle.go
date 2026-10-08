@@ -59,6 +59,28 @@ type BuildContext struct {
 	BuildGroupID    string   `json:"buildGroupId,omitempty"`
 	ImageName       string   `json:"imageName,omitempty"`
 	BuildImageNames []string `json:"buildImageNames,omitempty"`
+	// PublishedImage is the registry reference the orchestrator confirmed was published
+	PublishedImage string `json:"publishedImage,omitempty"`
+	// ImageDigest is the registry manifest digest (sha256:...) of PublishedImage
+	ImageDigest string `json:"imageDigest,omitempty"`
+	// ImageVerification records how PublishedImage was checked, one of ImageVerification* values
+	ImageVerification string `json:"imageVerification,omitempty"`
+}
+
+const (
+	// ImageVerificationMatched the published image was confirmed to be the image this build produced
+	ImageVerificationMatched = "matched"
+	// ImageVerificationExistsOnly the published image was confirmed to exist, but not compared to a local build
+	ImageVerificationExistsOnly = "exists-only"
+)
+
+// ValidImageVerification reports whether v is "" or a known ImageVerification value
+func ValidImageVerification(v string) bool {
+	switch v {
+	case "", ImageVerificationMatched, ImageVerificationExistsOnly:
+		return true
+	}
+	return false
 }
 
 type GitFileStatus struct {
