@@ -88,6 +88,36 @@ gatecheck config new gatecheck.yaml
 
 **Use Case:** Create a starting point for defining validation rules, then customize thresholds for your project.
 
+### gatecheck config fetch
+
+Download a configuration file from a URL and verify it before writing it out.
+
+**Usage:**
+```
+gatecheck config fetch --url <url> [--auth-env <ENV_VAR_NAME>] [-o <file>] [--timeout 30s]
+```
+
+**Flags:**
+- `--url` (required): Location of the configuration file. Must be `https`; plain `http` is only accepted for loopback hosts (`localhost`, `127.0.0.1`, `::1`).
+- `--auth-env`: Name of an environment variable holding the credential for the `Authorization` header. A bare token is sent as `Bearer <token>`; a value that already includes a scheme (e.g. `Basic ...`) is sent as-is. The credential itself is never accepted as a flag value. If the named variable is unset or empty, the command fails without making a request.
+- `-o, --output`: File to write. Defaults to STDOUT.
+- `--timeout`: Maximum time for the whole request (default `30s`).
+
+**Behavior:**
+- Fails closed. Any non-2xx response, an empty body, a body larger than 1 MiB, invalid YAML/JSON, an unknown key, multiple documents, or a missing `version` field is an error, and nothing is written.
+- The output file is replaced atomically and only after the body validates, so an existing file is never left truncated or overwritten by a failed fetch.
+- The response body is written exactly as received, so comments in the source are preserved.
+- The credential is never logged, included in errors, or written to the output. URLs in logs and errors are reduced to `scheme://host/path` (no user info or query string).
+
+**Example:**
+```
+export POLICY_TOKEN=...
+gatecheck config fetch --url https://policy.example.com/repos/acme/api/gatecheck?branch=main --auth-env POLICY_TOKEN -o .gatecheck.yml
+gatecheck validate --config .gatecheck.yml bundle.tar.gz
+```
+
+**Use Case:** Keep validation thresholds in a central policy service instead of each repository.
+
 ## gatecheck download
 
 Download external datasets like EPSS or KEV.
