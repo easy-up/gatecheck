@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
+	"github.com/gatecheckdev/gatecheck/pkg/redact"
 	"github.com/spf13/cobra"
 )
 
@@ -66,7 +67,8 @@ var listCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		epss, _ := cmd.Flags().GetBool("epss")
 
-		dst := cmd.OutOrStdout()
+		dst := redact.NewWriter(cmd.OutOrStdout())
+		defer dst.Flush()
 		src := RuntimeConfig.listSrcReader
 		srcName := RuntimeConfig.listSrcName
 		displayOpt := gatecheck.WithDisplayFormat(RuntimeConfig.listFormat)
@@ -130,7 +132,7 @@ var listAllCmd = &cobra.Command{
 				opts = append(opts, epssOpt)
 			}
 
-			dst := cmd.OutOrStdout()
+			dst := redact.NewWriter(cmd.OutOrStdout())
 			src, err := os.Open(filename)
 			if err != nil {
 				slog.Error("cannot open file, skip", "filename", filename, "error", err)
@@ -138,6 +140,7 @@ var listAllCmd = &cobra.Command{
 			}
 
 			err = gatecheck.List(dst, src, filename, opts...)
+			_ = dst.Flush()
 			if err != nil {
 				slog.Error("cannot list report, skip", "filename", filename, "error", err)
 				continue

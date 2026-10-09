@@ -13,6 +13,17 @@ gatecheck [command]
 
 **Use Case:** Entry point to access all functionalities. Run without arguments to see available commands.
 
+### Redacting vulnerability IDs
+
+`--redact-cve-ids` (or `GATECHECK_REDACT_CVE_IDS=true`) replaces vulnerability identifiers with `[redacted]` in everything gatecheck prints to the terminal:
+
+- **Logs and errors**, at every level including `--verbose`, so debugging output can stay on in CI.
+- **`list` and `list-all` tables.** Rows, packages and severities are kept; IDs (including inside advisory links) are replaced. Each replacement keeps the original width so columns stay aligned.
+
+Matched formats: CVE, GHSA, OSV ecosystem IDs (GO, PYSEC, RUSTSEC, MAL, ...), Bitnami (BIT) and common Linux distribution advisories (ALAS, RHSA, ELSA, DSA, DLA, USN, SUSE-SU, GLSA, ...).
+
+Report files, bundles and other commands that write data to STDOUT (e.g. `download`, `config`) are never modified. Any environment value other than an explicit false value (`false`, `0`) enables redaction.
+
 ## gatecheck bundle
 
 Manage Gatecheck bundles (.gcb files) which aggregate multiple security reports.

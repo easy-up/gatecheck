@@ -23,6 +23,7 @@ import (
 	"log/slog"
 
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
+	"github.com/gatecheckdev/gatecheck/pkg/redact"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -36,6 +37,8 @@ var gatecheckCmd = &cobra.Command{
 	Use:   "gatecheck",
 	Short: "Report validation tool",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		redact.SetEnabled(RuntimeConfig.RedactCVEIDs.Value().(bool))
+
 		verbose := RuntimeConfig.Verbose.Value().(bool)
 		silent := RuntimeConfig.Silent.Value().(bool)
 
@@ -70,6 +73,7 @@ var versionCmd = &cobra.Command{
 func NewGatecheckCommand() *cobra.Command {
 	RuntimeConfig.Verbose.SetupCobra(gatecheckCmd)
 	RuntimeConfig.Silent.SetupCobra(gatecheckCmd)
+	RuntimeConfig.RedactCVEIDs.SetupCobra(gatecheckCmd)
 
 	gatecheckCmd.MarkFlagsMutuallyExclusive("verbose", "silent")
 	gatecheckCmd.Flags().Bool("version", false, "print version and build information")

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [UNRELEASED]
 
+ * Added `--redact-cve-ids` / `GATECHECK_REDACT_CVE_IDS` to replace vulnerability IDs with `[redacted]` in logs (all levels) and `list` output; report files are unchanged
+
 ## [0.9.3] - 2026-03-21
 
  * Merged upstream main

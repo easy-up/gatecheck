@@ -3,6 +3,7 @@ package cmd
 import (
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/gatecheckdev/configkit"
@@ -27,6 +28,7 @@ type metaConfig struct {
 	Silent          configkit.MetaField
 	ConfigFilename  configkit.MetaField
 	Audit           configkit.MetaField
+	RedactCVEIDs    configkit.MetaField
 	BundleTagValue  []string
 	bundleFile      *os.File
 	targetFile      *os.File
@@ -171,6 +173,27 @@ var RuntimeConfig = metaConfig{
 			metadataFlagUsage:       "a validation configuration file",
 			metadataFieldType:       "string",
 			metadataActionInputName: "config_filename",
+		},
+	},
+	RedactCVEIDs: configkit.MetaField{
+		FieldName:    "RedactCVEIDs",
+		EnvKey:       "GATECHECK_REDACT_CVE_IDS",
+		DefaultValue: false,
+		FlagValueP:   new(bool),
+		// anything other than an explicit false value enables redaction
+		EnvToValueFunc: func(s string) any {
+			on, err := strconv.ParseBool(strings.TrimSpace(s))
+			return err != nil || on
+		},
+		CobraSetupFunc: func(f configkit.MetaField, cmd *cobra.Command) {
+			valueP := f.FlagValueP.(*bool)
+			usage := f.Metadata[metadataFlagUsage]
+			cmd.PersistentFlags().BoolVar(valueP, "redact-cve-ids", false, usage)
+		},
+		Metadata: map[string]string{
+			metadataFlagUsage:       "replace vulnerability IDs (CVE, GHSA, ...) with [redacted] in logs and list output",
+			metadataFieldType:       "bool",
+			metadataActionInputName: "redact_cve_ids",
 		},
 	},
 	Audit: configkit.MetaField{
