@@ -24,7 +24,7 @@ import (
 type Config struct {
 	Version   string               `json:"version"   toml:"version"   yaml:"version"`
 	Metadata  configMetadata       `json:"metadata"  toml:"metadata"  yaml:"metadata"`
-	Grype     reportWithCVEs       `json:"grype"     toml:"grype"     yaml:"grype"`
+	Grype     grypeReport          `json:"grype"     toml:"grype"     yaml:"grype"`
 	Cyclonedx reportWithCVEs       `json:"cyclonedx" toml:"cyclonedx" yaml:"cyclonedx"`
 	Semgrep   configSemgrepReport  `json:"semgrep"   toml:"semgrep"   yaml:"semgrep"`
 	Gitleaks  configGitleaksReport `json:"gitleaks"  toml:"gitleaks"  yaml:"gitleaks"`
@@ -79,6 +79,25 @@ type configSemgrepImpactRiskAcceptance struct {
 
 type configMetadata struct {
 	Tags []string `json:"tags" toml:"tags" yaml:"tags"`
+}
+
+// grypeReport is reportWithCVEs with grype's additional negligible and unknown severities
+type grypeReport struct {
+	SeverityLimit      configGrypeSeverityLimit `json:"severityLimit"      toml:"severityLimit"      yaml:"severityLimit"`
+	EPSSLimit          configEPSSLimit          `json:"epssLimit"          toml:"epssLimit"          yaml:"epssLimit"`
+	KEVLimitEnabled    bool                     `json:"kevLimitEnabled"    toml:"kevLimitEnabled"    yaml:"kevLimitEnabled"`
+	CVELimit           configCVELimit           `json:"cveLimit"           toml:"cveLimit"           yaml:"cveLimit"`
+	EPSSRiskAcceptance configEPSSRiskAcceptance `json:"epssRiskAcceptance" toml:"epssRiskAcceptance" yaml:"epssRiskAcceptance"`
+	CVERiskAcceptance  configCVERiskAcceptance  `json:"cveRiskAcceptance"  toml:"cveRiskAcceptance"  yaml:"cveRiskAcceptance"`
+}
+
+type configGrypeSeverityLimit struct {
+	Critical   configLimit `json:"critical"   toml:"critical"   yaml:"critical"`
+	High       configLimit `json:"high"       toml:"high"       yaml:"high"`
+	Medium     configLimit `json:"medium"     toml:"medium"     yaml:"medium"`
+	Low        configLimit `json:"low"        toml:"low"        yaml:"low"`
+	Negligible configLimit `json:"negligible" toml:"negligible" yaml:"negligible"`
+	Unknown    configLimit `json:"unknown"    toml:"unknown"    yaml:"unknown"`
 }
 
 type reportWithCVEs struct {
@@ -155,8 +174,8 @@ func NewDefaultConfig() *Config {
 				Low:     false,
 			},
 		},
-		Grype: reportWithCVEs{
-			SeverityLimit: configServerityLimit{
+		Grype: grypeReport{
+			SeverityLimit: configGrypeSeverityLimit{
 				Critical: configLimit{
 					Enabled: false,
 					Limit:   0,
@@ -170,6 +189,14 @@ func NewDefaultConfig() *Config {
 					Limit:   0,
 				},
 				Low: configLimit{
+					Enabled: false,
+					Limit:   0,
+				},
+				Negligible: configLimit{
+					Enabled: false,
+					Limit:   0,
+				},
+				Unknown: configLimit{
 					Enabled: false,
 					Limit:   0,
 				},
