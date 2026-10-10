@@ -73,8 +73,8 @@ func removeIgnoredSeverityCVEs(config *Config, report *artifacts.GrypeReportMin,
 		"high":       config.Grype.SeverityLimit.High.Enabled,
 		"medium":     config.Grype.SeverityLimit.Medium.Enabled,
 		"low":        config.Grype.SeverityLimit.Low.Enabled,
-		"unknown":    false,
-		"negligible": false,
+		"negligible": config.Grype.SeverityLimit.Negligible.Enabled,
+		"unknown":    config.Grype.SeverityLimit.Unknown.Enabled,
 	}
 
 	for severity, hasLimit := range hasLimits {
@@ -99,13 +99,15 @@ func ruleGrypeSeverityLimit(config *Config, report *artifacts.GrypeReportMin) bo
 	validationPass := true
 
 	limits := map[string]configLimit{
-		"critical": config.Grype.SeverityLimit.Critical,
-		"high":     config.Grype.SeverityLimit.High,
-		"medium":   config.Grype.SeverityLimit.Medium,
-		"low":      config.Grype.SeverityLimit.Low,
+		"critical":   config.Grype.SeverityLimit.Critical,
+		"high":       config.Grype.SeverityLimit.High,
+		"medium":     config.Grype.SeverityLimit.Medium,
+		"low":        config.Grype.SeverityLimit.Low,
+		"negligible": config.Grype.SeverityLimit.Negligible,
+		"unknown":    config.Grype.SeverityLimit.Unknown,
 	}
 
-	for _, severity := range []string{"critical", "high", "medium", "low"} {
+	for _, severity := range []string{"critical", "high", "medium", "low", "negligible", "unknown"} {
 
 		configuredLimit := limits[severity]
 		matches := report.SelectBySeverity(severity)
@@ -317,7 +319,7 @@ func ruleGrypeEPSSAllow(config *Config, report *artifacts.GrypeReportMin, data *
 	slog.Debug("run epss risk acceptance filter",
 		"artifact", "grype",
 		"vulnerabilities", len(report.Matches),
-		"epss_risk_acceptance_score", config.Cyclonedx.EPSSRiskAcceptance.Score,
+		"epss_risk_acceptance_score", config.Grype.EPSSRiskAcceptance.Score,
 	)
 	matches := slices.DeleteFunc(report.Matches, func(match artifacts.GrypeMatch) bool {
 		epssCVE, ok := data.CVEs[match.Vulnerability.ID]

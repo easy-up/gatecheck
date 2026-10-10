@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
  * Added `gatecheck config fetch` to download and strictly verify a configuration file from a URL, with the credential read from an environment variable
  * Added optional `build.publishedImage`, `build.imageDigest` and `build.imageVerification` manifest fields (`--build-published-image`, `--build-image-digest`, `--build-image-verification`)
+ * Added `grype.severityLimit.negligible` and `grype.severityLimit.unknown` limits (disabled by default)
+ * Fixed the grype EPSS risk acceptance debug log reporting the cyclonedx score
+ * Docs: coverage thresholds are fractions (0-1), not percentages
 
 ## [0.9.3] - 2026-03-21
 

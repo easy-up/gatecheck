@@ -33,9 +33,13 @@ The structure is the same across formats. Below is a detailed explanation of eac
 This section defines rules for Grype vulnerability reports.
 
 - **severityLimit** (object): Sets limits on the number of vulnerabilities per severity level. Exceeding a limit fails validation.
-  - **critical/high/medium/low** (objects):
+  - **critical/high/medium/low/negligible/unknown** (objects):
     - **enabled** (boolean): Whether this limit is active.
     - **limit** (unsigned integer): Maximum allowed vulnerabilities of this severity.
+
+  Findings at a severity with no enabled limit are dropped before the KEV, EPSS and risk acceptance rules run. Only the CVE deny list (`cveLimit`), which runs first, still sees them. One exception: when `epssLimit` is enabled, such findings are kept if their EPSS score is at or above `epssLimit.score`.
+
+  `negligible` and `unknown` are disabled by default, so Negligible and Unknown findings are dropped as before. Enabling either one counts those findings against its limit and also brings them into scope for the KEV and EPSS checks. These two severities exist only in Grype reports and are not valid under `cyclonedx.severityLimit`.
 
 - **epssLimit** (object): Fails validation if any vulnerability's EPSS score exceeds this limit.
   - **enabled** (boolean): Activate this rule.
@@ -68,6 +72,12 @@ grype:
     high:
       enabled: true
       limit: 5
+    negligible:
+      enabled: true
+      limit: 20
+    unknown:
+      enabled: true
+      limit: 0
   epssLimit:
     enabled: true
     score: 0.5
@@ -145,16 +155,18 @@ gitleaks:
 
 For LCOV code coverage reports.
 
-- **lineThreshold** (float): Minimum required line coverage percentage (0-100).
-- **functionThreshold** (float): Minimum required function coverage percentage.
-- **branchThreshold** (float): Minimum required branch coverage percentage.
+- **lineThreshold** (float): Minimum required line coverage as a fraction from 0 to 1 (e.g. `0.8` for 80%).
+- **functionThreshold** (float): Minimum required function coverage as a fraction from 0 to 1.
+- **branchThreshold** (float): Minimum required branch coverage as a fraction from 0 to 1.
+
+Coverage is computed as covered/total (for lines, `CoveredLines / TotalLines`) and compared directly with the threshold. A value greater than 1 (e.g. `80.0`) can never be met and always fails validation.
 
 **Example (YAML):**
 ```yaml
 coverage:
-  lineThreshold: 80.0
-  functionThreshold: 75.0
-  branchThreshold: 70.0
+  lineThreshold: 0.8
+  functionThreshold: 0.75
+  branchThreshold: 0.7
 ```
 
 **Use Case:** Enforce minimum test coverage levels in CI/CD pipelines.
@@ -179,7 +191,7 @@ gitleaks:
   limitEnabled: true
 
 coverage:
-  lineThreshold: 80.0
+  lineThreshold: 0.8
   # ... (as above)
 ```
 
