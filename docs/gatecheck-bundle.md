@@ -52,3 +52,25 @@ The web, worker, and migrations jobs use their own `imageName` but repeat the ex
 Group identity and retry policy remain the CI orchestrator's responsibility. A new grouped replacement must publish every expected image with a new shared ID. GitHub workflows commonly use `github:${{ github.repository_id }}:${{ github.run_id }}:${{ github.run_attempt }}` and rerun the full workflow. GitLab pipelines commonly use `gitlab:${CI_PROJECT_ID}:${CI_PIPELINE_ID}` and start a new full pipeline; an individual job retry keeps the same pipeline ID and, with Belay's current duplicate-artifact semantics, is not a new grouped replacement.
 
 Parent/child pipeline users must create the root identity before triggering children and pass it explicitly to each child. Other CI providers can use any provider-qualified opaque run identity, provided every parallel job receives the same value.
+
+### Published image
+
+The CI orchestrator can also record which image it confirmed in the registry. These fields are independent of grouped mode, optional, and omitted from the manifest when not supplied.
+
+- `publishedImage` is the registry reference that was checked, e.g. `registry.example.com/team/api:abc1234`.
+- `imageDigest` is the registry **manifest** digest (`sha256:...`) of that reference. A deploy target can pin to `<image>@<imageDigest>`.
+- `imageVerification` records how the image was checked:
+  - `matched`: the registry image was confirmed to be the image this build produced.
+  - `exists-only`: the reference was confirmed to exist in the registry, but was not compared to a local build.
+  - absent: no verification was performed.
+
+```shell
+gatecheck bundle add gatecheck-bundle.tar.gz gatecheck-config.yml \
+  --build-published-image registry.example.com/team/api:abc1234 \
+  --build-image-digest sha256:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08 \
+  --build-image-verification matched
+```
+
+`--build-image-verification` accepts only `matched` or `exists-only`, and `--build-image-digest` must start with `sha256:`. Gatecheck does not contact the registry; it records what the orchestrator supplies.
+
+As with the other build context fields, each `bundle create` or `bundle add` that passes any build context flag replaces the manifest's whole `build` object, so supply every field you want kept on each call.

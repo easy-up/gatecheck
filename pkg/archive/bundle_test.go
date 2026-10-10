@@ -79,6 +79,55 @@ func TestBundle_BuildContextInManifest(t *testing.T) {
 	}
 }
 
+func TestBundle_PublishedImageInManifest(t *testing.T) {
+	bundle := NewBundle()
+	bundle.SetBuildContext(&BuildContext{
+		PublishedImage:    "registry.example.com/team/api:abc1234",
+		ImageDigest:       "sha256:0123",
+		ImageVerification: ImageVerificationMatched,
+	})
+
+	manifestBytes, err := json.Marshal(bundle.Manifest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		`"publishedImage":"registry.example.com/team/api:abc1234"`,
+		`"imageDigest":"sha256:0123"`,
+		`"imageVerification":"matched"`,
+	} {
+		if !bytes.Contains(manifestBytes, []byte(want)) {
+			t.Fatalf("want %s in manifest: %s", want, manifestBytes)
+		}
+	}
+}
+
+func TestBundle_PublishedImageOmittedWhenUnset(t *testing.T) {
+	bundle := NewBundle()
+	bundle.SetBuildContext(&BuildContext{BuildGroupID: "build-123"})
+
+	manifestBytes, err := json.Marshal(bundle.Manifest())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{"publishedImage", "imageDigest", "imageVerification"} {
+		if bytes.Contains(manifestBytes, []byte(key)) {
+			t.Fatalf("want %s omitted from manifest: %s", key, manifestBytes)
+		}
+	}
+}
+
+func TestValidImageVerification(t *testing.T) {
+	for _, v := range []string{"", ImageVerificationMatched, ImageVerificationExistsOnly} {
+		if !ValidImageVerification(v) {
+			t.Fatalf("want %q valid", v)
+		}
+	}
+	if ValidImageVerification("verified") {
+		t.Fatal("want unknown value invalid")
+	}
+}
+
 type badWriter struct{}
 
 func (r *badWriter) Write(_ []byte) (int, error) {
