@@ -17,6 +17,8 @@ Configs support three formats:
 - JSON (.json)
 - TOML (.toml)
 
+A configuration can also be downloaded from a policy service with `gatecheck config fetch`, which verifies the document strictly (unknown keys and a missing `version` are rejected) before writing it. See the [CLI Reference](cli-reference.md#gatecheck-config-fetch).
+
 The structure is the same across formats. Below is a detailed explanation of each section and field, based on the Gatecheck codebase.
 
 ## Top-Level Fields
