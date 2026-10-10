@@ -13,6 +13,7 @@ import (
 
 	"github.com/gatecheckdev/gatecheck/cmd"
 	"github.com/gatecheckdev/gatecheck/pkg/gatecheck"
+	"github.com/gatecheckdev/gatecheck/pkg/redact"
 )
 
 const (
@@ -48,11 +49,16 @@ func run() int {
 		Compiler:       runtime.Compiler,
 	}
 
+	// Logs and errors pass through redaction, which is a no-op unless --redact-cve-ids is set
+	stderr := redact.NewWriter(os.Stderr)
+	defer stderr.Flush()
+
 	// Colorized logging output for the CLI
-	logHandler := tint.NewHandler(os.Stderr, &tint.Options{Level: cmd.LogLeveler, TimeFormat: time.TimeOnly})
+	logHandler := tint.NewHandler(stderr, &tint.Options{Level: cmd.LogLeveler, TimeFormat: time.TimeOnly})
 	slog.SetDefault(slog.New(logHandler))
 
 	command := cmd.NewGatecheckCommand()
+	command.SetErr(stderr)
 
 	err := command.Execute()
 	if errors.Is(err, gatecheck.ErrValidationFailure) {
