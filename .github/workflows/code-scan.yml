@@ -17,7 +17,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run Portage CD Scans
-        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@main
+        uses: easy-up/portage-cd-actions/image-build-scan-publish/docker@belay_main
+        env:
+          DEPLOY_WEBHOOK_AUTH_HEADER: ${{ secrets.DEPLOY_WEBHOOK_AUTH_HEADER }}
         with:
           image_build_enabled: 'false'
           image_scan_enabled: 'false'
