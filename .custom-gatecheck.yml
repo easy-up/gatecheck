@@ -12,20 +12,20 @@ grype:
             limit: 0       # Maximum number of critical vulnerabilities allowed
         high:
             enabled: false
-            limit: 7
+            limit: 0
         medium:
             enabled: false
             limit: 0
         low:
             enabled: false
             limit: 0
-    
+
     epssLimit:
         enabled: false     # Whether to enforce EPSS (Exploit Prediction Scoring System) limits
         score: 0          # Maximum allowed EPSS score
-    
+
     kevLimitEnabled: false  # Whether to enforce Known Exploited Vulnerabilities (KEV) limits
-    
+
     cveLimit:
         enabled: false    # Whether to enforce specific CVE limits
         cves: []         # List of specific CVEs to check against
@@ -90,15 +90,15 @@ semgrep:
     # Maximum allowed findings by severity level
     severityLimit:
         error:
-            enabled: false
-            limit: 5      # Maximum number of error-level findings allowed
+            enabled: true
+            limit: 17      # Maximum number of error-level findings allowed
         warning:
             enabled: false
             limit: 0
         info:
             enabled: false
             limit: 0
-    
+
     # Risk acceptance configuration based on impact levels
     impactRiskAcceptance:
         enabled: true     # Whether to use impact-based risk acceptance
@@ -108,7 +108,7 @@ semgrep:
 
 # Gitleaks configuration (for secrets scanning)
 gitleaks:
-    limitEnabled: false   # Whether to enforce limits on secrets findings
+    limitEnabled: true   # Whether to enforce limits on secrets findings
 
 # Code coverage requirements
 coverage:
