@@ -91,10 +91,10 @@ semgrep:
     severityLimit:
         error:
             enabled: true
-            limit: 17      # Maximum number of error-level findings allowed
+            limit: 1      # Maximum number of error-level findings allowed
         warning:
-            enabled: false
-            limit: 0
+            enabled: true
+            limit: 17
         info:
             enabled: false
             limit: 0
