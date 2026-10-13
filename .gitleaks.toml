@@ -1,0 +1,13 @@
+# Gitleaks configuration, loaded automatically from the repository root.
+# Keeps the default rules and only skips sample scanner reports used as
+# fixtures. Those reports come from scanning OWASP Juice Shop, a deliberately
+# vulnerable demo app, so they contain its fake example secrets by design.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Sample scanner reports (OWASP Juice Shop findings)"
+paths = [
+  '''^test/gitleaks-report\.json$''',
+  '''^test/semgrep-sast-report\.json$''',
+]
